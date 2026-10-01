@@ -126,6 +126,8 @@
                 <span id="timer-clock">32:00</span>
             </div>
             <button class="timer-hide-btn" id="toggle-timer-btn" onclick="toggleTimerVisibility()">Hide</button>
+            <span style="color: #cbd5e1;">|</span>
+            <button class="timer-hide-btn" id="reset-timer-btn" onclick="resetCurrentTimer()" title="Reset module timer to full time">Reset Timer</button>
         </div>
 
         <div class="header-right">
@@ -667,6 +669,15 @@
             const m = Math.floor(secRemaining / 60);
             const s = secRemaining % 60;
             clockEl.textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        
+        function resetCurrentTimer() {
+            const actualMIdx = getActualModuleIndex();
+            const defaultTime = examData.modules[actualMIdx].time; // 32*60 for RW, 35*60 for Math
+            moduleTimers[actualMIdx] = defaultTime;
+            updateTimerDisplay();
+            saveState();
         }
 
         function toggleTimerVisibility() {
