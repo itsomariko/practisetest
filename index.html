@@ -251,6 +251,32 @@
         </div>
     </div>
 
+    
+    <!-- Welcome / Start Test Screen -->
+    <div class="fullscreen-overlay" id="welcome-screen">
+        <div class="break-card" style="max-width: 680px; text-align: left; align-items: flex-start; padding: 36px 32px;">
+            <div style="font-size: 13px; font-weight: 700; color: #64748b; letter-spacing: 1px; text-transform: uppercase;">Official Practice Exam</div>
+            <h1 style="color: var(--bb-blue); font-size: 30px; margin: 8px 0 16px;">Digital SAT Full-Length Practice Test</h1>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
+                Welcome to your full-length Digital SAT practice exam modeled after the Bluebook test application. 
+                This practice test consists of 4 total modules across 2 sections:
+            </p>
+            <ul style="color: #334155; font-size: 14.5px; line-height: 1.7; margin-bottom: 20px; padding-left: 20px;">
+                <li><strong>Section 1: Reading and Writing</strong> — 2 modules (27 questions & 32 minutes each)</li>
+                <li><strong>10-Minute Break</strong> (optional / skippable)</li>
+                <li><strong>Section 2: Math</strong> — 2 modules (22 questions & 35 minutes each, with built-in Desmos and Reference Sheet)</li>
+            </ul>
+            <p style="color: #64748b; font-size: 13.5px; line-height: 1.5; margin-bottom: 24px;">
+                • The countdown timer is for practice pacing and will <strong>not</strong> cut you off.<br>
+                • You can pause your test anytime and return without losing your progress.<br>
+                • Answers and explanations remain hidden until you complete all modules.
+            </p>
+            <div style="display: flex; gap: 14px; width: 100%;" id="welcome-actions">
+                <button class="nav-btn" style="padding: 12px 36px; font-size: 15px;" onclick="beginTestFromWelcome()">Start Test</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Official 10-Minute Break Screen -->
     <div class="fullscreen-overlay" id="break-screen" style="display: none;">
         <div class="break-card">
@@ -310,6 +336,7 @@
         let moduleTimers = [32 * 60, 32 * 60, 35 * 60, 35 * 60];
         let timerTicker = null;
         let timerHidden = false;
+        let hasStarted = false;
 
         let breakTimeRemaining = 10 * 60;
         let breakTicker = null;
@@ -318,6 +345,7 @@
         // Initialize or restore session
         window.addEventListener('DOMContentLoaded', () => {
             const savedState = localStorage.getItem('sat_bluebook_state');
+            let hasSavedProgress = false;
             if (savedState) {
                 try {
                     const parsed = JSON.parse(savedState);
@@ -328,18 +356,50 @@
                     moduleTimers = parsed.moduleTimers || [32*60, 32*60, 35*60, 35*60];
                     isInBreak = !!parsed.isInBreak;
                     breakTimeRemaining = (parsed.breakTimeRemaining !== undefined) ? parsed.breakTimeRemaining : 10 * 60;
+                    hasStarted = !!parsed.hasStarted;
+                    if (hasStarted) {
+                        hasSavedProgress = true;
+                    }
                 } catch(e) {
                     console.error("Could not parse saved state:", e);
                 }
             }
 
+            if (hasSavedProgress) {
+                // Show option to resume saved test or start over
+                document.getElementById('welcome-screen').style.display = 'flex';
+                document.getElementById('welcome-actions').innerHTML = `
+                    <button class="nav-btn" style="padding: 12px 36px; font-size: 15px;" onclick="resumeFromWelcome()">Resume In-Progress Test</button>
+                    <button class="nav-btn secondary" style="padding: 12px 24px; font-size: 15px;" onclick="restartFromWelcome()">Start Over</button>
+                `;
+            } else {
+                // First visit: keep welcome screen visible, do not auto-start
+                document.getElementById('welcome-screen').style.display = 'flex';
+            }
+        });
+
+        function beginTestFromWelcome() {
+            hasStarted = true;
+            document.getElementById('welcome-screen').style.display = 'none';
+            loadModule(0, 0);
+            startTimer();
+            saveState();
+        }
+
+        function resumeFromWelcome() {
+            document.getElementById('welcome-screen').style.display = 'none';
             if (isInBreak) {
                 showBreakScreen();
             } else {
                 loadModule(currentModuleIndex, currentQuestionIndex);
                 startTimer();
             }
-        });
+        }
+
+        function restartFromWelcome() {
+            localStorage.removeItem('sat_bluebook_state');
+            location.reload();
+        }
 
         function saveState() {
             const state = {
@@ -349,7 +409,8 @@
                 flaggedQuestions,
                 moduleTimers,
                 isInBreak,
-                breakTimeRemaining
+                breakTimeRemaining,
+                hasStarted
             };
             localStorage.setItem('sat_bluebook_state', JSON.stringify(state));
         }
